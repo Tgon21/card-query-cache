@@ -1,46 +1,34 @@
-# Card Query — scheduled cache builder.
-#
-# Put this file + build-cache.js in a PUBLIC repo (so the VPS can pull the result
-# via raw.githubusercontent.com, which is never blocked). It fetches theshow.com
-# and commits cache.json on a schedule.
-#
-# IMPORTANT: GitHub's runners use Azure datacenter IPs, which theshow.com's WAF
-# MAY block (the same way it blocks the VPS). Run it once manually first
-# (Actions tab → this workflow → "Run workflow"). If the step 403s, GitHub's IP
-# is blocked too — run build-cache.js on your home machine instead and commit
-# cache.json from there (a Windows Task Scheduler job works well).
 name: build-cache
-
 on:
   schedule:
-    - cron: "0 */6 * * *"   # every 6 hours (UTC)
-  workflow_dispatch: {}      # manual "Run workflow" button
-
+    - cron: "0 */3 * * *"     # every 3 hours (more chances to land a non-blocked runner)
+  workflow_dispatch: {}
 permissions:
-  contents: write            # allow the action to commit cache.json
-
+  contents: write
 concurrency:
   group: build-cache
-  cancel-in-progress: true
-
+  cancel-in-progress: false
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-      - name: Build cache.json
-        run: node build-cache.js
+        with: { node-version: 22 }
+      - name: Build cache.json (tolerate theshow.com 403 on blocked runner IPs)
+        run: |
+          for i in 1 2 3; do
+            if node build-cache.js; then exit 0; fi
+            echo "attempt $i was blocked; retrying in 45s"; sleep 45
+          done
+          echo "::warning::theshow.com blocked this runner IP this run — keeping the previous cache.json"
+          exit 0
       - name: Commit if changed
         run: |
           git config user.name "cache-bot"
           git config user.email "cache-bot@users.noreply.github.com"
           if [ -n "$(git status --porcelain cache.json)" ]; then
-            git add cache.json
-            git commit -m "cache: refresh $(date -u +%FT%TZ)"
-            git push
+            git add cache.json && git commit -m "cache: refresh $(date -u +%FT%TZ)" && git push
           else
-            echo "cache.json unchanged — nothing to commit."
+            echo "unchanged or blocked — nothing to commit"
           fi
