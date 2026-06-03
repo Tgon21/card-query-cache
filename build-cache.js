@@ -47,6 +47,13 @@ function slimCard(it, price) {
     hbf_l: it.hits_per_bf_left, hbf_r: it.hits_per_bf_right,
     kbf_l: it.k_per_bf_left, kbf_r: it.k_per_bf_right,
     pitch_names: it.pitches && Array.isArray(it.pitches.pitches) ? it.pitches.pitches.map((p) => p.name) : [],
+    block: it.blocking, rback: it.reaction_back, rfwd: it.reaction_forward, rleft: it.reaction_left, rright: it.reaction_right,
+    pop: it.pop_time, cfld: it.catcher_fielding_rating,
+    conR: it.contact_rating, powR: it.power_rating, spdR: it.speed_rating, fldR: it.fielding_rating, armR: it.arm_rating, intang: it.intangibles_rating,
+    height: it.height, weight: it.weight, born: it.born, jersey_number: it.jersey_number, set_name: it.set_name,
+    img_lg: it.baked_img_lg || it.img,
+    quirks: it.quirks ? it.quirks.map((q) => (typeof q === "string" ? q : q.name)).filter(Boolean) : [],
+    pitches_full: it.pitches || null,
     best_buy_price: price ? price.best_buy_price : 0,
     best_sell_price: price ? price.best_sell_price : 0,
   };
